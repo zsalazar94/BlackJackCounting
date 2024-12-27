@@ -60,17 +60,17 @@ body {
 
 .game-title {
     text-align: center;
-    font-size: 2.5rem;
-    margin: 20px 0;
-    color: #ffc107; /* Gold color for the title */
+    font-size: 1.8rem; /* Reduced size */
+    margin: 10px 0; /* Reduced margin */
+    color: #ffc107;
 }
 
 .game-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
-    padding: 20px;
+    gap: 10px; /* Reduced gap */
+    padding: 10px; /* Reduced padding */
 }
 
 /* Game Info Section */
@@ -79,15 +79,15 @@ body {
     justify-content: space-between;
     align-items: center;
     width: 90%;
-    max-width: 800px;
-    margin: 0 auto 20px;
-    padding: 10px 20px;
+    max-width: 900px; /* Adjusted for better fit */
+    margin: 0 auto 10px; /* Reduced margin */
+    padding: 8px 15px; /* Reduced padding */
     border-bottom: 1px solid #ccc;
-    background-color: #34495e; /* Slightly darker background */
+    background-color: #34495e;
 }
 
 .player-cash {
-    font-size: 2rem;
+    font-size: 1.4rem; /* Reduced size */
     font-weight: bold;
     margin: 0;
     text-align: center;
@@ -95,8 +95,7 @@ body {
 }
 
 .cards-remaining {
-    font-size: 1.2rem;
-    font-weight: normal;
+    font-size: 1rem; /* Reduced size */
     margin: 0;
     text-align: right;
     flex: 0 0 auto;
@@ -105,103 +104,87 @@ body {
 /* Dealer Section */
 .dealer-section {
     width: 90%;
-    max-width: 800px;
-    margin-bottom: 20px;
+    max-width: 900px;
+    margin-bottom: 10px; /* Reduced spacing */
     border: 1px solid #ccc;
-    border-radius: 10px;
-    padding: 20px;
+    border-radius: 6px;
+    padding: 10px; /* Reduced padding */
     background-color: #34495e;
     text-align: center;
 }
 
 .cards {
     display: flex;
-    gap: 10px;
+    gap: 5px; /* Reduced gap */
     justify-content: center;
-    flex-wrap: wrap; /* Ensures cards wrap within the container */
+    flex-wrap: wrap; /* Ensure cards wrap */
 }
 
 .card-image {
-    width: 60px;
-    height: 90px;
+    width: 48px; /* Reduced size */
+    height: 72px; /* Reduced size */
     border: 1px solid #000;
-    border-radius: 5px;
-    margin: 5px;
+    border-radius: 4px;
+    margin: 3px; /* Reduced margin */
     background-color: white;
 }
-
-.card {
-    width: 60px;
-    height: 90px;
-    border: 1px solid #000;
-    border-radius: 5px;
-    text-align: center;
-    line-height: 90px;
-    font-weight: bold;
-    background-color: white;
-    color: black;
-}
-
-    .card.face-down {
-        background-color: gray;
-        color: white;
-    }
 
 .hand-total {
     font-weight: bold;
-    margin-top: 10px;
-    color: #ffc107; /* Gold color for emphasis */
+    margin-top: 5px; /* Reduced margin */
+    color: #ffc107;
 }
 
 /* Player Section */
 .player-section {
     width: 90%;
-    max-width: 800px;
+    max-width: 900px;
     margin: 0 auto;
     text-align: center;
 }
 
 .hands-container {
     display: flex;
-    gap: 20px;
-    justify-content: center;
-    flex-wrap: wrap; /* Ensures responsiveness */
+    flex-wrap: wrap;
+    gap: 10px; /* Space between hands */
+    justify-content: space-evenly; /* Distribute hands evenly */
 }
 
 .hand {
     border: 1px solid #ccc;
-    border-radius: 10px;
-    padding: 15px;
-    background-color: #34495e; /* Matches the dealer-section and other blue sections */
-    width: 200px; /* Fixed width for consistent alignment */
-    flex: 0 0 auto; /* Prevent shrinking */
+    border-radius: 6px;
+    padding: 10px;
+    background-color: #34495e;
+    flex: 0 1 22%; /* Each hand takes up 22% of the row */
+    max-width: 200px; /* Prevent hands from becoming too wide */
     text-align: center;
-    color: white; /* Ensure text is readable on the dark background */
+    color: white;
+    box-sizing: border-box; /* Include padding and border in width calculation */
 }
 
 /* Actions Section */
 .actions-section {
     text-align: center;
-    margin-top: 20px;
+    margin-top: 10px; /* Reduced margin */
 }
 
 .actions {
     display: flex;
-    gap: 10px;
+    gap: 5px; /* Reduced gap */
     justify-content: center;
 }
 
 button {
-    padding: 10px 20px;
-    font-size: 1rem;
-    border-radius: 5px;
+    padding: 6px 10px; /* Reduced padding */
+    font-size: 0.9rem;
+    border-radius: 4px;
     border: none;
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
 
     button:hover {
-        background-color: #ffc107; /* Gold hover effect */
+        background-color: #ffc107;
         color: black;
     }
 
@@ -228,45 +211,46 @@ button {
 /* Betting Controls */
 .betting-controls {
     display: flex;
-    align-items: center; /* Vertically align items */
-    gap: 10px; /* Add space between elements */
-    justify-content: center; /* Center the entire group */
+    align-items: center;
+    gap: 5px; /* Reduced gap */
+    justify-content: center;
 }
 
     .betting-controls label {
-        font-size: 1rem;
+        font-size: 0.9rem;
         font-weight: bold;
         margin: 0;
     }
 
     .betting-controls input {
-        padding: 5px 10px;
-        font-size: 1rem;
+        padding: 5px;
+        font-size: 0.9rem;
         border: 1px solid #ccc;
-        border-radius: 5px;
-        width: 100px; /* Adjust width as needed */
+        border-radius: 4px;
+        width: 80px;
         text-align: center;
     }
 
     .betting-controls button {
-        padding: 10px 15px;
-        font-size: 1rem;
-        border-radius: 5px;
+        padding: 6px 10px;
+        font-size: 0.9rem;
+        border-radius: 4px;
     }
+
 .card-count-toggle {
     position: absolute;
-    top: 70px; /* Adjust to move it further down */
-    left: 250px; /* Adjust to move it further away from the sidebar */
-    z-index: 1000; /* Ensure it overlays other elements */
+    top: 50px; /* Adjusted for compact spacing */
+    left: 200px;
+    z-index: 1000;
 }
 
 .card-count-display {
     background-color: #34495e;
     color: white;
-    padding: 10px;
+    padding: 6px;
     border: 1px solid #ccc;
-    border-radius: 5px;
-    margin-top: 5px;
+    border-radius: 4px;
+    margin-top: 4px;
     width: max-content;
 }
 

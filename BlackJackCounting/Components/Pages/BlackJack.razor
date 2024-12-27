@@ -1,5 +1,7 @@
 ﻿@page "/blackjack"
 @inject GameService GameService
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
 @rendermode InteractiveServer
 
 <div class="card-count-toggle">
@@ -12,7 +14,6 @@
         </div>
     }
 </div>
-
 
 <h1 class="game-title">Blackjack</h1>
 
@@ -50,7 +51,6 @@
             : GameService.DealerHand.Cards[0].PrimaryValue.ToString())
             : "N/A")
         </p>
-
     </section>
 
     <!-- Player Hands Section -->
@@ -89,15 +89,15 @@
         else
         {
             <div class="actions">
-                <button class="btn btn-primary" @onclick="Hit">Hit</button>
-                <button class="btn btn-secondary" @onclick="Stand">Stand</button>
+                <button class="btn btn-primary" @onclick="Hit">Hit (H)</button>
+                <button class="btn btn-secondary" @onclick="Stand">Stand (S)</button>
                 @if (GameService.PlayerHands[GameService.CurrentHandIndex].Cards.Count == 2)
                 {
-                    <button class="btn btn-warning" @onclick="DoubleDown">Double Down</button>
+                    <button class="btn btn-warning" @onclick="DoubleDown">Double Down (D)</button>
                 }
                 @if (GameService.CanSplit())
                 {
-                    <button class="btn btn-success" @onclick="Split">Split</button>
+                    <button class="btn btn-success" @onclick="Split">Split (X)</button>
                 }
             </div>
         }
@@ -107,65 +107,101 @@
             <div class="betting-controls">
                 <label for="betAmount">Place Your Bet:</label>
                 <input type="number" id="betAmount" @bind="BetAmount" min="1" max="@GameService.PlayerCash" />
-                <button class="btn btn-primary" @onclick="PlaceBetAndStartGame">Place Bet</button>
+                <button class="btn btn-primary" @onclick="PlaceBetAndStartGame">Place Bet (P)</button>
             </div>
         }
     </section>
 </div>
 
-
+<script>
+    window.addKeyPressListener = function (dotNetHelper) {
+        document.addEventListener('keydown', (event) => {
+            switch (event.key.toLowerCase()) {
+                case 'h':
+                    dotNetHelper.invokeMethodAsync('Hit');
+                    break;
+                case 's':
+                    dotNetHelper.invokeMethodAsync('Stand');
+                    break;
+                case 'd':
+                    dotNetHelper.invokeMethodAsync('DoubleDown');
+                    break;
+                case 'x':
+                    dotNetHelper.invokeMethodAsync('Split');
+                    break;
+                case 'p':
+                    dotNetHelper.invokeMethodAsync('PlaceBet');
+                    break;
+            }
+        });
+    };
+</script>
 
 @code {
     private int BetAmount { get; set; } = 0;
+    private DotNetObjectReference<BlackJack>? _dotNetRef;
 
-
-    protected override void OnInitialized()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        GameService.StartNewGame();
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("addKeyPressListener", _dotNetRef);
+        }
     }
 
-    private void Hit()
+    [JSInvokable]
+    public void Hit()
     {
         GameService.PlayerHits();
         StateHasChanged();
     }
 
-    private void Stand()
+    [JSInvokable]
+    public void Stand()
     {
         GameService.PlayerStands();
         StateHasChanged();
     }
 
-    private void DoubleDown()
+    [JSInvokable]
+    public void DoubleDown()
     {
-        GameService.DoubleDown();
-        StateHasChanged();
+        if (GameService.PlayerHands[GameService.CurrentHandIndex].Cards.Count == 2)
+        {            
+            GameService.DoubleDown();
+            StateHasChanged();
+        }
     }
 
-    private void Split()
+    [JSInvokable]
+    public void Split()
     {
         GameService.Split();
         StateHasChanged();
     }
 
-    private void PlaceBetAndStartGame()
+    [JSInvokable]
+    public void PlaceBet()
     {
-        ResetForNewRound();
-        try
-        {
-            GameService.PlaceBet(BetAmount);
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error placing bet: {ex.Message}");
-        }
+        PlaceBetAndStartGame();
     }
 
-    private void RestartGame()
+    private void PlaceBetAndStartGame()
     {
-        GameService.StartNewGame();
-        StateHasChanged();
+        if (GameService.CurrentBet == 0)
+        {            
+            ResetForNewRound();
+            try
+            {
+                GameService.PlaceBet(BetAmount);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error placing bet: {ex.Message}");
+            }
+        }
     }
 
     private void ResetForNewRound()
@@ -176,7 +212,6 @@
 
     private string GetCardImage(Card card)
     {
-        // Convert card rank to the proper format
         string rank = card.Rank switch
         {
             Rank.Two => "2",
@@ -188,13 +223,10 @@
             Rank.Eight => "8",
             Rank.Nine => "9",
             Rank.Ten => "10",
-            _ => card.Rank.ToString().ToLower() // For "jack", "queen", "king", "ace"
+            _ => card.Rank.ToString().ToLower()
         };
 
-        // Convert suit to lowercase
         string suit = card.Suit.ToString().ToLower();
-
-        // Construct the image filename
         return $"/images/cards/{rank}_of_{suit}.png";
     }
 
@@ -203,5 +235,13 @@
     private void ToggleCardCount()
     {
         ShowCardCount = !ShowCardCount;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_dotNetRef is not null)
+        {
+            _dotNetRef.Dispose();
+        }
     }
 }

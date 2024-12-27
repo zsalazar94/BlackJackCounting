@@ -1,0 +1,377 @@
+﻿@page "/blackjackai"
+@inject GameService GameService
+@rendermode InteractiveServer
+
+<h1 class="game-title">Blackjack AI</h1>
+
+<div class="game-info-container">
+    <h2 class="player-cash">AI Bankroll: $@($"{GameService.PlayerCash:F2}")</h2>
+    <p class="cards-remaining">Cards Remaining: <strong>@GameService.Deck.CardsRemaining</strong></p>
+    <p>Running Count: @GameService.RunningCount</p>
+    <p>True Count: @GameService.TrueCount</p>
+</div>
+
+<div class="game-container">
+    <!-- Dealer Section -->
+    <section class="dealer-section">
+        <h2>Dealer's Hand</h2>
+        <div class="cards">
+            @for (int i = 0; i < GameService.DealerHand.Cards.Count; i++)
+            {
+                @if (i == 0 || GameService.IsGameOver)
+                {
+                    <!-- Show the card if it's the first card or the game is over -->
+                    <img class="card-image" src="@GetCardImage(GameService.DealerHand.Cards[i])" alt="@GameService.DealerHand.Cards[i]" />
+                }
+                else
+                {
+                    <!-- Show the back of the card -->
+                    <img class="card-image" src="/images/cards/red_back.jpg" alt="Hidden Card" />
+                }
+            }
+        </div>
+        <p class="hand-total">
+            Total: @(
+            GameService.DealerHand.Cards.Count > 0
+            ? (GameService.IsGameOver
+            ? (GameService.DealerHand.IsSoft()
+            ? $"{GameService.DealerHand.CalculateValue()} ({GameService.DealerHand.CalculateValue() - 10})"
+            : $"{GameService.DealerHand.CalculateValue()}")
+            : GameService.DealerHand.Cards[0].PrimaryValue.ToString())
+            : "N/A")
+        </p>
+    </section>
+
+    <!-- Player Hands Section -->
+    <section class="player-section">
+        <h2>AI Hands</h2>
+        <div class="hands-container">
+            @for (int i = 0; i < GameService.PlayerHands.Count; i++)
+            {
+                <div class="hand">
+                    <h3>Hand @(i + 1)</h3>
+                    <p>Bet: <strong>$@($"{GameService.Bets[i]:F2}")</strong></p>
+                    <div class="cards">
+                        @foreach (var card in GameService.PlayerHands[i].Cards)
+                        {
+                            <img class="card-image" src="@GetCardImage(card)" alt="@card.ToString()" />
+                        }
+                    </div>
+                    <p class="hand-total">
+                        Total: @(
+                     GameService.PlayerHands[i].IsSoft()
+                     ? $"{GameService.PlayerHands[i].CalculateValue()} ({GameService.PlayerHands[i].CalculateValue() - 10})"
+                     : $"{GameService.PlayerHands[i].CalculateValue()}")
+                    </p>
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- Game Actions Section -->
+    <section class="actions-section">
+        <button class="btn btn-primary" @onclick="RunAIPlay">Run AI Play</button>
+        <button class="btn btn-primary" @onclick="RunAIPlayOneHundredTimes">Run AI Play 10,000 times</button>
+
+        @if (GameService.IsGameOver)
+        {
+            <h3>@GameService.GameResult</h3>
+        }
+    </section>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        GameService.StartNewGame();
+    }
+
+    private void RunAIPlay()
+    {
+        bool hasIncompleteHand = GameService.PlayerHands.Any(hand => hand.Cards.Count < 2);
+        if (hasIncompleteHand)
+        {
+            ;
+        }
+        ResetForNewRound();
+
+        // AI places bet
+        double betAmount = DetermineBetBasedOnCount();
+        GameService.PlaceBet(betAmount);
+        //await UpdateUIWithDelay();
+
+        // AI plays hands
+        while (!GameService.IsGameOver)
+        {
+            AIPlayHand();
+            StateHasChanged();
+            //await UpdateUIWithDelay(); // Delay after each action
+        }
+        StateHasChanged();
+        //await UpdateUIWithDelay(); // Final UI update after the game is over
+    }
+
+
+    private void RunAIPlayOneHundredTimes()
+    {
+
+        int count = 0;
+        while (count < 10000)
+        {        
+            bool hasIncompleteHand = GameService.PlayerHands.Any(hand => hand.Cards.Count < 2);
+            if (hasIncompleteHand)
+            {
+                ;
+            }
+            ResetForNewRound();
+
+            // AI places bet
+            double betAmount = DetermineBetBasedOnCount();
+            GameService.PlaceBet(betAmount);
+
+            // AI plays hands
+            while (!GameService.IsGameOver)
+            {
+                AIPlayHand();
+            }
+            count++;
+            var trueCount = GameService.TrueCount;
+            if (trueCount > 3)
+            {
+                ;
+            }
+            Console.WriteLine(count);
+        }
+
+    }
+
+    private async Task UpdateUIWithDelay()
+    {
+        await InvokeAsync(StateHasChanged); // Force UI update
+        await Task.Delay(2000); // Add a 2-second delay
+    }
+
+    private void ResetForNewRound()
+    {
+        GameService.StartNewGame();
+        StateHasChanged();
+    }
+
+    private double DetermineBetBasedOnCount()
+    {
+        int betAmount = 5;
+        double trueCount = GameService.TrueCount;
+
+        // Simple betting strategy: bet more when count is high
+        if (trueCount >= 8)
+            return Math.Min(GameService.PlayerCash, betAmount * 8);
+        else if (trueCount >= 7)
+            return Math.Min(GameService.PlayerCash, betAmount * 7);
+        else if (trueCount >= 6)
+            return Math.Min(GameService.PlayerCash, betAmount * 6);
+        else if (trueCount >= 5)
+            return Math.Min(GameService.PlayerCash, betAmount * 5);
+        else if (trueCount >= 4)
+            return Math.Min(GameService.PlayerCash, betAmount * 4);
+            /*
+        else if (trueCount >= 3)
+            return Math.Min(GameService.PlayerCash, betAmount * 3);
+        else if (trueCount >= 2)
+            return Math.Min(GameService.PlayerCash, betAmount * 2);
+        */
+        else
+            return 5; // Minimum bet
+    }
+
+    private void AIPlayHand()
+    {
+        var currentHand = GameService.PlayerHands[GameService.CurrentHandIndex];
+        var dealerUpcard = GameService.DealerHand.Cards[0].PrimaryValue; // Dealer's visible card
+        var trueCount = GameService.TrueCount;
+
+        // Apply deviations for pair splitting
+        if (currentHand.Cards.Count == 2 && currentHand.Cards[0].Rank == currentHand.Cards[1].Rank && GameService.PlayerHands.Count < 4)
+        {
+            if (ShouldSplit(currentHand.Cards[0].Rank, dealerUpcard, trueCount))
+            {
+                GameService.Split();
+                return; // Split and play the new hands
+            }
+        }
+
+        // Apply deviations for hard and soft totals
+        if (currentHand.IsSoft()) // Handle soft hands
+        {
+            var action = DetermineSoftHandAction(currentHand, dealerUpcard, trueCount);
+
+            switch (action)
+            {
+                case AIAction.Hit:
+                    GameService.PlayerHits();
+                    break;
+                case AIAction.Stand:
+                    GameService.PlayerStands();
+                    break;
+                case AIAction.Double:
+                    if (currentHand.Cards.Count == 2) // Only double if allowed
+                        GameService.DoubleDown();
+                    else
+                        GameService.PlayerHits(); // Treat double as hit if not allowed
+                    break;
+            }
+
+            return;
+        }
+        else // Hard hands
+        {
+            var action = DetermineHardHandAction(currentHand, dealerUpcard, trueCount);
+
+            switch (action)
+            {
+                case AIAction.Hit:
+                    GameService.PlayerHits();
+                    break;
+                case AIAction.Stand:
+                    GameService.PlayerStands();
+                    break;
+                case AIAction.Double:
+                    if (currentHand.Cards.Count == 2) // Only double if allowed
+                        GameService.DoubleDown();
+                    else
+                        GameService.PlayerHits(); // Treat double as hit if not allowed
+                    break;
+            }
+        }
+
+        // Default action: Stand if no special conditions apply
+        GameService.PlayerStands();
+    }
+
+    private string GetCardImage(Card card)
+    {
+        // Convert card rank to the proper format
+        string rank = card.Rank switch
+        {
+            Rank.Two => "2",
+            Rank.Three => "3",
+            Rank.Four => "4",
+            Rank.Five => "5",
+            Rank.Six => "6",
+            Rank.Seven => "7",
+            Rank.Eight => "8",
+            Rank.Nine => "9",
+            Rank.Ten => "10",
+            _ => card.Rank.ToString().ToLower() // For "jack", "queen", "king", "ace"
+        };
+
+        // Convert suit to lowercase
+        string suit = card.Suit.ToString().ToLower();
+
+        // Construct the image filename
+        return $"/images/cards/{rank}_of_{suit}.png";
+    }
+
+    private bool ShouldSplit(Rank rank, int dealerUpcard, double trueCount)
+    {
+        // Logic based on the "PAIR SPLITTING" section of the chart
+        if (rank == Rank.Ace || rank == Rank.Eight) return true; // Always split Aces
+        if (rank == Rank.Ten && trueCount >= 6 && dealerUpcard == 4) return true;
+        if (rank == Rank.Ten && trueCount >= 5 && dealerUpcard == 5) return true;
+        if (rank == Rank.Ten && trueCount >= 4 && dealerUpcard == 6) return true;
+        if (rank == Rank.Nine && dealerUpcard >= 2 && dealerUpcard <= 6) return true;
+        if (rank == Rank.Nine && dealerUpcard >= 8 && dealerUpcard <= 9) return true;
+        if (rank == Rank.Seven && dealerUpcard >= 2 && dealerUpcard <= 7) return true;
+        if (rank == Rank.Six && dealerUpcard >= 2 && dealerUpcard <= 6) return true;
+        if (rank == Rank.Four && dealerUpcard >= 5 && dealerUpcard <= 6) return true;
+        if (rank == Rank.Three && dealerUpcard >= 2 && dealerUpcard <= 7) return true;
+        if (rank == Rank.Two && dealerUpcard >= 2 && dealerUpcard <= 7) return true;
+        return false;
+    }
+
+    private AIAction DetermineSoftHandAction(Hand hand, int dealerUpcard, double trueCount)
+    {
+        int handValue = hand.CalculateValue();
+
+        //Soft 20 (A, 9)
+        if (handValue == 20) return AIAction.Stand;
+
+        //Soft 19 (A, 8)
+        if (handValue == 19 && dealerUpcard == 4 && trueCount >= 3) return AIAction.Double;
+        if (handValue == 19 && dealerUpcard >= 5 && dealerUpcard <= 6 && trueCount >= 1) return AIAction.Double;
+        if (handValue == 19 && dealerUpcard >= 2) return AIAction.Stand;
+
+        //Soft 18 (A, 7)
+        if (handValue == 18 && dealerUpcard >= 2 && dealerUpcard <= 6) return AIAction.Double;
+        if (handValue == 18 && dealerUpcard >= 7 && dealerUpcard <= 8) return AIAction.Stand;
+
+        //Soft 17 (A, 6)
+        if (handValue == 17 && dealerUpcard == 2 && dealerUpcard <= 6 && trueCount >= 1) return AIAction.Double;
+        if (handValue == 17 && dealerUpcard >= 3 && dealerUpcard <= 6) return AIAction.Double;
+
+        //Soft 16 (A, 5)
+        if (handValue == 16 && dealerUpcard >= 4 && dealerUpcard <= 6) return AIAction.Double;
+
+        //Soft 15 (A, 4)
+        if (handValue == 15 && dealerUpcard >= 4 && dealerUpcard <= 6) return AIAction.Double;
+
+        //Soft 14 (A, 3)
+        if (handValue == 14 && dealerUpcard >= 5 && dealerUpcard <= 6) return AIAction.Double;
+        
+        //Soft 13 (A, 2)
+        if (handValue == 13 && dealerUpcard >= 5 && dealerUpcard <= 6) return AIAction.Double;
+
+
+        return AIAction.Hit;
+    }
+
+    private AIAction DetermineHardHandAction(Hand hand, int dealerUpcard, double trueCount)
+    {
+        int handValue = hand.CalculateValue();
+
+        //Hard 17+
+        if (handValue >= 17) return AIAction.Stand;
+
+        //Hard 16-14
+        if (handValue == 14 && dealerUpcard >= 2 && dealerUpcard <= 6) return AIAction.Stand;
+
+        //Hard 13
+        if (handValue == 13 && dealerUpcard == 2 && trueCount <= -1) return AIAction.Hit;
+        if (handValue == 13 && dealerUpcard == 2) return AIAction.Stand;
+
+        if (handValue == 13 && dealerUpcard >= 3 && dealerUpcard <= 6) return AIAction.Stand;
+
+        //Hard 12
+        if (handValue == 12 && dealerUpcard == 2 && trueCount >= 3) return AIAction.Stand;
+        if (handValue == 12 && dealerUpcard == 2) return AIAction.Hit;
+        if (handValue == 12 && dealerUpcard == 3 && trueCount >= 2) return AIAction.Stand;
+        if (handValue == 12 && dealerUpcard == 3) return AIAction.Hit;
+        if (handValue == 12 && dealerUpcard == 4 && trueCount <= 0) return AIAction.Hit;
+        if (handValue == 12 && dealerUpcard == 4) return AIAction.Stand;
+        if (handValue == 12 && dealerUpcard >= 5 && dealerUpcard <= 6) return AIAction.Stand;
+
+        //Hard 11
+        if (handValue == 11 && dealerUpcard == 11 && trueCount >= 1) return AIAction.Double;
+        if (handValue == 11 && dealerUpcard >= 2 && dealerUpcard <= 10) return AIAction.Double;
+
+        //Hard 10
+        if (handValue == 10 && dealerUpcard >= 10 && trueCount >= 4) return AIAction.Double;
+        if (handValue == 10 && dealerUpcard >= 2 && dealerUpcard <= 9) return AIAction.Double;
+
+        //Hard 9
+        if (handValue == 9 && dealerUpcard == 2 && trueCount >= 1) return AIAction.Double;
+        if (handValue == 9 && dealerUpcard == 7 && trueCount >= 3) return AIAction.Double;
+        if (handValue == 9 && dealerUpcard >= 3 && dealerUpcard <= 6) return AIAction.Double;
+
+        //Hard 8
+        if (handValue == 8 && dealerUpcard == 6 && trueCount >= 2) return AIAction.Double;
+
+
+        return AIAction.Hit;
+    }
+
+    private async Task Stand()
+    {
+        await GameService.PlayerStandsAsync(UpdateUIWithDelay);
+    }
+
+}

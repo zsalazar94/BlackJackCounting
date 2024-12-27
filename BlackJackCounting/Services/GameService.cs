@@ -2,6 +2,7 @@
 using BlackJackCounting.Enums;
 using BlackJackCounting.Models;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Runtime.CompilerServices;
 
 namespace BlackJackCounting.Services
 {
@@ -15,7 +16,7 @@ namespace BlackJackCounting.Services
         public string GameResult { get; private set; }
 
         // Betting System
-        public double PlayerCash { get; private set; } = 1000.00; // Starting cash
+        public double PlayerCash { get; private set; } = 10000.00; // Starting cash
         public double CurrentBet { get; private set; }
         public List<double> Bets { get; private set; } // Bets for each hand
         public int RunningCount { get; private set; } = 0; // Running count for card counting
@@ -29,6 +30,7 @@ namespace BlackJackCounting.Services
 
         public void StartNewGame()
         {
+            LogMethodStart();
             ReplenishDeckIfNecessary(true); // Check and replenish for a new game
             PlayerHands = new List<Hand> { new Hand() };
             DealerHand = new Hand();
@@ -39,8 +41,15 @@ namespace BlackJackCounting.Services
             CurrentBet = 0;
         }
 
+        public void LogMethodStart([CallerMemberName] string methodName = "")
+        {
+            //Console.WriteLine($"Starting {methodName}");
+        }
+
         public void StartGameAfterBet()
         {
+            LogMethodStart();
+
             if (CurrentBet <= 0)
             {
                 throw new InvalidOperationException("You must place a bet before starting the game.");
@@ -51,6 +60,8 @@ namespace BlackJackCounting.Services
 
         private void DealInitialCards()
         {
+            LogMethodStart();
+
             ReplenishDeckIfNecessary(false); // Ensure the deck is not empty before dealing
 
             PlayerHands[0].AddCard(Deck.Deal());
@@ -75,6 +86,8 @@ namespace BlackJackCounting.Services
 
         public bool CanSplit()
         {
+            LogMethodStart();
+
             if (CurrentHandIndex >= PlayerHands.Count) return false;
             var hand = PlayerHands[CurrentHandIndex];
             return hand.Cards.Count == 2 && hand.Cards[0].Rank == hand.Cards[1].Rank && PlayerHands.Count < 4;
@@ -82,6 +95,8 @@ namespace BlackJackCounting.Services
 
         public void Split()
         {
+            LogMethodStart();
+
             if (!CanSplit()) return;
 
             var currentHand = PlayerHands[CurrentHandIndex];
@@ -92,7 +107,7 @@ namespace BlackJackCounting.Services
             UpdateRunningCount(currentHand.Cards[1]); // Update count for the moved card
             currentHand.Cards.RemoveAt(1);
 
-            // Deal a card to the current hand only
+            // Deal a card to the current hand
             var dealtCard = Deck.Deal();
             currentHand.AddCard(dealtCard);
             UpdateRunningCount(dealtCard); // Update count for the dealt card
@@ -105,6 +120,8 @@ namespace BlackJackCounting.Services
 
         public void DoubleDown()
         {
+            LogMethodStart();
+
             if (IsGameOver || CurrentHandIndex >= PlayerHands.Count) return;
 
             var currentHand = PlayerHands[CurrentHandIndex];
@@ -116,21 +133,29 @@ namespace BlackJackCounting.Services
             // Add one card to the current hand
             var dealtCard = Deck.Deal();
             currentHand.AddCard(dealtCard);
-            UpdateRunningCount(dealtCard); // Update count for the dealt card
+            UpdateRunningCount(dealtCard); // Update the running count for the dealt card
 
             // Automatically stand after doubling down
-            if (CurrentHandIndex < PlayerHands.Count - 1)
+            if (currentHand.IsBust || CurrentHandIndex == PlayerHands.Count - 1)
             {
-                CurrentHandIndex++; // Move to the next hand if there are more
+                DealerPlays(); // If it's the last hand, dealer plays
             }
             else
             {
-                DealerPlays(); // Dealer plays after all hands are done
+                CurrentHandIndex++; // Move to the next hand
+                if (PlayerHands[CurrentHandIndex].Cards.Count == 1)
+                {
+                    dealtCard = Deck.Deal();
+                    PlayerHands[CurrentHandIndex].AddCard(dealtCard);
+                    UpdateRunningCount(dealtCard);
+                }
             }
         }
 
         public void PlayerHits()
         {
+            LogMethodStart();
+
             if (IsGameOver) return;
 
             ReplenishDeckIfNecessary(false); // Check and replenish mid-game if necessary
@@ -141,18 +166,74 @@ namespace BlackJackCounting.Services
 
             UpdateRunningCount(dealtCard); // Update the running count for the dealt card
 
-            if (currentHand.IsBust && CurrentHandIndex < PlayerHands.Count - 1)
+            if (currentHand.CalculateValue() == 21)
             {
-                CurrentHandIndex++; // Move to the next hand
+                // Automatically stand on 21
+                if (CurrentHandIndex < PlayerHands.Count - 1)
+                {
+                    CurrentHandIndex++;
+                    if (PlayerHands[CurrentHandIndex].Cards.Count == 1)
+                    {
+                        dealtCard = Deck.Deal();
+                        PlayerHands[CurrentHandIndex].AddCard(dealtCard);
+                        UpdateRunningCount(dealtCard);
+                    }
+                }
+                else
+                {
+                    DealerPlays(); // Dealer plays if it's the last hand
+                }
             }
-            else if (currentHand.IsBust && CurrentHandIndex == PlayerHands.Count - 1)
+            else if (currentHand.IsBust)
             {
-                DealerPlays(); // Dealer plays if it’s the last hand
+                // Transition to the next hand if the current hand busts
+                if (CurrentHandIndex < PlayerHands.Count - 1)
+                {
+                    CurrentHandIndex++;
+                    if (PlayerHands[CurrentHandIndex].Cards.Count == 1)
+                    {
+                        dealtCard = Deck.Deal();
+                        PlayerHands[CurrentHandIndex].AddCard(dealtCard);
+                        UpdateRunningCount(dealtCard);
+                    }
+                }
+                else
+                {
+                    DealerPlays(); // If it's the last hand, let the dealer play
+                }
             }
         }
 
         public void PlayerStands()
         {
+            LogMethodStart();
+
+            if (IsGameOver) return;
+
+            if (CurrentHandIndex < PlayerHands.Count - 1)
+            {
+                // Move to the next hand
+                CurrentHandIndex++;
+
+                // Ensure the next hand has two cards
+                if (PlayerHands[CurrentHandIndex].Cards.Count == 1)
+                {
+                    var dealtCard = Deck.Deal();
+                    PlayerHands[CurrentHandIndex].AddCard(dealtCard);
+                    UpdateRunningCount(dealtCard);
+                }
+            }
+            else
+            {
+                // Dealer plays when all player hands are finished
+                DealerPlays();
+            }
+        }
+
+        public async Task PlayerStandsAsync(Func<Task> updateUI)
+        {
+            LogMethodStart();
+
             if (IsGameOver) return;
 
             if (CurrentHandIndex < PlayerHands.Count - 1)
@@ -168,13 +249,46 @@ namespace BlackJackCounting.Services
             }
             else
             {
-                // Dealer plays when all player hands are finished
-                DealerPlays();
+                // Trigger asynchronous dealer play
+                await DealerPlaysAsync(updateUI);
             }
+
+            await updateUI(); // Ensure the UI reflects the changes
+        }
+
+
+        public async Task DealerPlaysAsync(Func<Task> updateUI)
+        {
+            LogMethodStart();
+
+            // Flip the dealer's face-down card
+            await updateUI(); // Update UI to show the flipped card
+            await Task.Delay(2000); // Add a 2-second delay
+
+            // Dealer draws cards until the total is at least 17
+            while (ShouldDealerHit())
+            {
+                var dealtCard = Deck.Deal();
+                DealerHand.AddCard(dealtCard);
+
+                // Update running count for the dealt card
+                UpdateRunningCount(dealtCard);
+
+                // Delay between card draws
+                await updateUI();
+                await Task.Delay(2000);
+            }
+
+            // Final UI update
+            await updateUI();
+            DetermineWinner();
+            IsGameOver = true;
         }
 
         private void DealerPlays()
         {
+            LogMethodStart();
+
             while (ShouldDealerHit())
             {
                 var dealtCard = Deck.Deal();
@@ -189,12 +303,16 @@ namespace BlackJackCounting.Services
 
         private bool ShouldDealerHit()
         {
+            LogMethodStart();
+
             int dealerValue = DealerHand.CalculateValue();
             return dealerValue < 17 || (dealerValue == 17 && DealerHand.IsSoft());
         }
 
         private void DetermineWinner()
         {
+            LogMethodStart();
+
             foreach (var hand in PlayerHands)
             {
                 int playerTotal = hand.CalculateValue();
@@ -223,6 +341,8 @@ namespace BlackJackCounting.Services
 
         public void PlaceBet(double amount)
         {
+            LogMethodStart();
+
             if (amount <= 0 || amount > PlayerCash)
             {
                 throw new InvalidOperationException("Invalid bet amount.");
@@ -236,6 +356,8 @@ namespace BlackJackCounting.Services
 
         public void ResolveBets()
         {
+            LogMethodStart();
+
             for (int i = 0; i < PlayerHands.Count; i++)
             {
                 var hand = PlayerHands[i];
@@ -290,7 +412,9 @@ namespace BlackJackCounting.Services
 
         private void ReplenishDeckIfNecessary(bool isNewGame)
         {
-            if (Deck == null || (isNewGame && Deck.CardsRemaining < 156))
+            LogMethodStart();
+
+            if (Deck == null || (isNewGame && Deck.CardsRemaining < 120))
             {
                 Deck = new Deck(); // Replenish the deck for a new game
                 RunningCount = 0;  // Reset running count on new shuffle
@@ -314,6 +438,8 @@ namespace BlackJackCounting.Services
         // Call this method whenever a card is dealt
         public void UpdateRunningCount(Card card)
         {
+            LogMethodStart();
+
             // Assign values for card counting (High-Low system)
             if (card.PrimaryValue >= 2 && card.PrimaryValue <= 6)
             {
