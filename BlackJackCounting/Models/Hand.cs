@@ -26,16 +26,44 @@ namespace BlackJackCounting.Models
         /// <returns>The best possible hand value without exceeding 21.</returns>
         public int CalculateValue()
         {
-            int totalValue = Cards.Sum(card => card.PrimaryValue);
-            int aceCount = Cards.Count(card => card.Rank == Rank.Ace);
+            int total = 0;
+            int aceCount = 0;
 
-            while (totalValue > 21 && aceCount > 0)
+            foreach (var card in Cards)
             {
-                totalValue -= 10; // Adjust one Ace from 11 to 1
+                total += card.PrimaryValue;
+                if (card.Rank == Rank.Ace)
+                {
+                    aceCount++;
+                }
+            }
+
+            // Adjust for Aces to avoid busting
+            while (total > 21 && aceCount > 0)
+            {
+                total -= 10;
                 aceCount--;
             }
 
-            return totalValue;
+            return total;
+        }
+
+        public bool IsSoft()
+        {
+            int total = 0;
+            int aceCount = 0;
+
+            foreach (var card in Cards)
+            {
+                total += card.PrimaryValue;
+                if (card.Rank == Rank.Ace)
+                {
+                    aceCount++;
+                }
+            }
+
+            // If there's an Ace being counted as 11, it's a soft hand
+            return total <= 21 && aceCount > 0;
         }
 
         public bool IsBust => CalculateValue() > 21;

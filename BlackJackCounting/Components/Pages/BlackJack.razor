@@ -2,6 +2,17 @@
 @inject GameService GameService
 @rendermode InteractiveServer
 
+<div class="card-count-toggle">
+    <button class="btn btn-secondary" @onclick="ToggleCardCount">Toggle Card Count</button>
+    @if (ShowCardCount)
+    {
+        <div class="card-count-display">
+            <p>Running Count: @GameService.RunningCount</p>
+            <p>True Count: @GameService.TrueCount</p>
+        </div>
+    }
+</div>
+
 
 <h1 class="game-title">Blackjack</h1>
 
@@ -19,11 +30,13 @@
             {
                 @if (i == 0 || GameService.IsGameOver)
                 {
-                    <div class="card">@GameService.DealerHand.Cards[i].ToString()</div>
+                    <!-- Show the card if it's the first card or the game is over -->
+                    <img class="card-image" src="@GetCardImage(GameService.DealerHand.Cards[i])" alt="@GameService.DealerHand.Cards[i]" />
                 }
                 else
                 {
-                    <div class="card face-down">[Hidden Card]</div>
+                    <!-- Show the back of the card -->
+                    <img class="card-image" src="/images/cards/red_back.jpg" alt="Hidden Card" />
                 }
             }
         </div>
@@ -31,10 +44,13 @@
             Total: @(
             GameService.DealerHand.Cards.Count > 0
             ? (GameService.IsGameOver
-            ? GameService.DealerHand.CalculateValue()
-            : GameService.DealerHand.Cards[0].PrimaryValue)
+            ? (GameService.DealerHand.IsSoft()
+            ? $"{GameService.DealerHand.CalculateValue()} ({GameService.DealerHand.CalculateValue() - 10})"
+            : $"{GameService.DealerHand.CalculateValue()}")
+            : GameService.DealerHand.Cards[0].PrimaryValue.ToString())
             : "N/A")
         </p>
+
     </section>
 
     <!-- Player Hands Section -->
@@ -49,10 +65,16 @@
                     <div class="cards">
                         @foreach (var card in GameService.PlayerHands[i].Cards)
                         {
-                            <div class="card">@card.ToString()</div>
+                            <img class="card-image" src="@GetCardImage(card)" alt="@card.ToString()" />
                         }
                     </div>
-                    <p class="hand-total">Total: @GameService.PlayerHands[i].CalculateValue()</p>
+                    <p class="hand-total">
+                        Total: @(
+                     GameService.PlayerHands[i].IsSoft()
+                     ? $"{GameService.PlayerHands[i].CalculateValue()} ({GameService.PlayerHands[i].CalculateValue() - 10})"
+                     : $"{GameService.PlayerHands[i].CalculateValue()}"
+                     )
+                    </p>
                 </div>
             }
         </div>
@@ -63,7 +85,6 @@
         @if (GameService.IsGameOver)
         {
             <h3>@GameService.GameResult</h3>
-            <p>Your current cash: <strong>$@($"{GameService.PlayerCash:F2}")</strong></p>
         }
         else
         {
@@ -151,5 +172,36 @@
     {
         GameService.StartNewGame();
         StateHasChanged();
+    }
+
+    private string GetCardImage(Card card)
+    {
+        // Convert card rank to the proper format
+        string rank = card.Rank switch
+        {
+            Rank.Two => "2",
+            Rank.Three => "3",
+            Rank.Four => "4",
+            Rank.Five => "5",
+            Rank.Six => "6",
+            Rank.Seven => "7",
+            Rank.Eight => "8",
+            Rank.Nine => "9",
+            Rank.Ten => "10",
+            _ => card.Rank.ToString().ToLower() // For "jack", "queen", "king", "ace"
+        };
+
+        // Convert suit to lowercase
+        string suit = card.Suit.ToString().ToLower();
+
+        // Construct the image filename
+        return $"/images/cards/{rank}_of_{suit}.png";
+    }
+
+    private bool ShowCardCount { get; set; } = false;
+
+    private void ToggleCardCount()
+    {
+        ShowCardCount = !ShowCardCount;
     }
 }

@@ -1,4 +1,5 @@
 ﻿using BlackJackCounting.Data;
+using BlackJackCounting.Enums;
 using BlackJackCounting.Models;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
@@ -17,6 +18,8 @@ namespace BlackJackCounting.Services
         public double PlayerCash { get; private set; } = 1000.00; // Starting cash
         public double CurrentBet { get; private set; }
         public List<double> Bets { get; private set; } // Bets for each hand
+        public int RunningCount { get; private set; } = 0; // Running count for card counting
+        public int TotalDecks { get; private set; } = 6; // Number of decks used in the game
 
 
         public GameService()
@@ -51,9 +54,16 @@ namespace BlackJackCounting.Services
             ReplenishDeckIfNecessary(false); // Ensure the deck is not empty before dealing
 
             PlayerHands[0].AddCard(Deck.Deal());
+            UpdateRunningCount(PlayerHands[0].Cards[^1]); // Update count
+
             DealerHand.AddCard(Deck.Deal());
+            UpdateRunningCount(DealerHand.Cards[^1]); // Update count
+
             PlayerHands[0].AddCard(Deck.Deal());
+            UpdateRunningCount(PlayerHands[0].Cards[^1]); // Update count
+
             DealerHand.AddCard(Deck.Deal());
+            UpdateRunningCount(DealerHand.Cards[^1]); // Update count
 
             if (PlayerHands[0].HasBlackjack)
             {
@@ -74,19 +84,22 @@ namespace BlackJackCounting.Services
         {
             if (!CanSplit()) return;
 
-            ReplenishDeckIfNecessary(false); // Check and replenish mid-game if necessary
-
             var currentHand = PlayerHands[CurrentHandIndex];
             var newHand = new Hand();
 
+            // Move the second card from the current hand to the new hand
             newHand.AddCard(currentHand.Cards[1]);
+            UpdateRunningCount(currentHand.Cards[1]); // Update count for the moved card
             currentHand.Cards.RemoveAt(1);
 
-            currentHand.AddCard(Deck.Deal());
-            newHand.AddCard(Deck.Deal());
+            // Deal a card to the current hand only
+            var dealtCard = Deck.Deal();
+            currentHand.AddCard(dealtCard);
+            UpdateRunningCount(dealtCard); // Update count for the dealt card
 
+            // Add the new hand to the list of player hands
             PlayerHands.Add(newHand);
-            Bets.Add(Bets[CurrentHandIndex]); // Duplicate the bet
+            Bets.Add(Bets[CurrentHandIndex]); // Duplicate the bet for the new hand
             PlayerCash -= Bets[CurrentHandIndex]; // Deduct the additional bet
         }
 
@@ -101,7 +114,9 @@ namespace BlackJackCounting.Services
             Bets[CurrentHandIndex] *= 2;
 
             // Add one card to the current hand
-            currentHand.AddCard(Deck.Deal());
+            var dealtCard = Deck.Deal();
+            currentHand.AddCard(dealtCard);
+            UpdateRunningCount(dealtCard); // Update count for the dealt card
 
             // Automatically stand after doubling down
             if (CurrentHandIndex < PlayerHands.Count - 1)
@@ -121,7 +136,10 @@ namespace BlackJackCounting.Services
             ReplenishDeckIfNecessary(false); // Check and replenish mid-game if necessary
 
             var currentHand = PlayerHands[CurrentHandIndex];
-            currentHand.AddCard(Deck.Deal());
+            var dealtCard = Deck.Deal();
+            currentHand.AddCard(dealtCard);
+
+            UpdateRunningCount(dealtCard); // Update the running count for the dealt card
 
             if (currentHand.IsBust && CurrentHandIndex < PlayerHands.Count - 1)
             {
@@ -141,6 +159,12 @@ namespace BlackJackCounting.Services
             {
                 // Move to the next hand
                 CurrentHandIndex++;
+
+                // If the next hand has only one card, deal the second card
+                if (PlayerHands[CurrentHandIndex].Cards.Count == 1)
+                {
+                    PlayerHands[CurrentHandIndex].AddCard(Deck.Deal());
+                }
             }
             else
             {
@@ -151,13 +175,22 @@ namespace BlackJackCounting.Services
 
         private void DealerPlays()
         {
-            while (DealerHand.CalculateValue() < 17)
+            while (ShouldDealerHit())
             {
-                DealerHand.AddCard(Deck.Deal());
+                var dealtCard = Deck.Deal();
+                DealerHand.AddCard(dealtCard);
+
+                UpdateRunningCount(dealtCard); // Update the running count for the dealt card
             }
 
             DetermineWinner();
             IsGameOver = true;
+        }
+
+        private bool ShouldDealerHit()
+        {
+            int dealerValue = DealerHand.CalculateValue();
+            return dealerValue < 17 || (dealerValue == 17 && DealerHand.IsSoft());
         }
 
         private void DetermineWinner()
@@ -166,7 +199,7 @@ namespace BlackJackCounting.Services
             {
                 int playerTotal = hand.CalculateValue();
                 int dealerTotal = DealerHand.CalculateValue();
-
+                /*
                 if (hand.IsBust)
                 {
                     GameResult += $"Hand {PlayerHands.IndexOf(hand) + 1}: Bust!\n";
@@ -182,7 +215,7 @@ namespace BlackJackCounting.Services
                 else
                 {
                     GameResult += $"Hand {PlayerHands.IndexOf(hand) + 1}: Tie!\n";
-                }
+                }*/
             }
             ResolveBets();
             IsGameOver = true;
@@ -208,52 +241,87 @@ namespace BlackJackCounting.Services
                 var hand = PlayerHands[i];
                 int playerTotal = hand.CalculateValue();
                 int dealerTotal = DealerHand.CalculateValue();
+                double winnings = 0;
 
                 if (hand.HasBlackjack && hand.Cards.Count == 2) // Blackjack condition
                 {
                     if (dealerTotal == 21 && DealerHand.Cards.Count == 2)
                     {
                         // Both player and dealer have blackjack (tie)
-                        PlayerCash = Math.Round(PlayerCash + Bets[i], 2); // Refund the bet
+                        PlayerCash += Bets[i]; // Refund the bet
+                        GameResult += $"Hand {i + 1}: Tie! Bet refunded.\n";
                     }
                     else
                     {
                         // Player has blackjack and wins 3:2
-                        PlayerCash = Math.Round(PlayerCash + Bets[i] * 2.5, 2); // Bet + 1.5x bet
+                        winnings = Bets[i] * 1.5;
+                        PlayerCash += Bets[i] + winnings;
+                        GameResult += $"Hand {i + 1}: Blackjack! Total winnings: ${Bets[i] + winnings:F2}.\n";
                     }
                 }
                 else if (hand.IsBust)
                 {
                     // Player loses the bet on this hand
+                    GameResult += $"Hand {i + 1}: Bust! Lost ${Bets[i]:F2}.\n";
                 }
                 else if (DealerHand.IsBust || playerTotal > dealerTotal)
                 {
-                    // Player wins 2x the bet
-                    PlayerCash = Math.Round(PlayerCash + Bets[i] * 2, 2);
+                    // Player wins
+                    winnings = Bets[i];
+                    PlayerCash += Bets[i] + winnings;
+                    GameResult += $"Hand {i + 1}: You Win! Total winnings: ${Bets[i] + winnings:F2}.\n";
                 }
                 else if (playerTotal == dealerTotal)
                 {
-                    // Tie: Refund the bet
-                    PlayerCash = Math.Round(PlayerCash + Bets[i], 2);
+                    // Tie
+                    PlayerCash += Bets[i];
+                    GameResult += $"Hand {i + 1}: Tie! Bet refunded.\n";
                 }
                 else
                 {
-                    // Player loses the bet
+                    // Player loses
+                    GameResult += $"Hand {i + 1}: Dealer Wins! Lost ${Bets[i]:F2}.\n";
                 }
             }
 
             CurrentBet = 0; // Reset the bet after resolution
         }
 
+
         private void ReplenishDeckIfNecessary(bool isNewGame)
         {
-            if (Deck == null || (isNewGame && Deck.CardsRemaining < 15))
+            if (Deck == null || (isNewGame && Deck.CardsRemaining < 156))
             {
                 Deck = new Deck(); // Replenish the deck for a new game
+                RunningCount = 0;  // Reset running count on new shuffle
             }
             else if (!isNewGame && Deck.CardsRemaining == 0)
             {
                 Deck = new Deck(); // Replenish the deck during the game only if it's empty
+                RunningCount = 0;  // Reset running count on new shuffle
+            }
+        }
+        
+        public double TrueCount
+        {
+            get
+            {
+                double remainingDecks = Deck.CardsRemaining / 52.0;
+                return remainingDecks > 0 ? Math.Round(RunningCount / remainingDecks, 2) : 0;
+            }
+        }
+
+        // Call this method whenever a card is dealt
+        public void UpdateRunningCount(Card card)
+        {
+            // Assign values for card counting (High-Low system)
+            if (card.PrimaryValue >= 2 && card.PrimaryValue <= 6)
+            {
+                RunningCount++; // Low cards increase count
+            }
+            else if (card.PrimaryValue >= 10 || card.Rank == Rank.Ace)
+            {
+                RunningCount--; // High cards decrease count
             }
         }
     }

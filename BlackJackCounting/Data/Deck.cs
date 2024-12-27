@@ -13,11 +13,14 @@ namespace BlackJackCounting.Data
 
         private IEnumerable<Card> GenerateDeck()
         {
-            foreach (Suit suit in Enum.GetValues(typeof(Suit)))
-            {
-                foreach (Rank rank in Enum.GetValues(typeof(Rank)))
+            for (int i = 0; i < 6; i++)
+            { 
+                foreach (Suit suit in Enum.GetValues(typeof(Suit)))
                 {
-                    yield return new Card(suit, rank);
+                    foreach (Rank rank in Enum.GetValues(typeof(Rank)))
+                    {
+                        yield return new Card(suit, rank);
+                    }
                 }
             }
         }

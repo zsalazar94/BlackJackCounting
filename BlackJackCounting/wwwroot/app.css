@@ -118,7 +118,16 @@ body {
     display: flex;
     gap: 10px;
     justify-content: center;
-    flex-wrap: wrap; /* Cards wrap if needed */
+    flex-wrap: wrap; /* Ensures cards wrap within the container */
+}
+
+.card-image {
+    width: 60px;
+    height: 90px;
+    border: 1px solid #000;
+    border-radius: 5px;
+    margin: 5px;
+    background-color: white;
 }
 
 .card {
@@ -163,11 +172,11 @@ body {
     border: 1px solid #ccc;
     border-radius: 10px;
     padding: 15px;
-    background-color: #f8f9fa;
+    background-color: #34495e; /* Matches the dealer-section and other blue sections */
     width: 200px; /* Fixed width for consistent alignment */
     flex: 0 0 auto; /* Prevent shrinking */
     text-align: center;
-    color: black; /* Black text for contrast on light background */
+    color: white; /* Ensure text is readable on the dark background */
 }
 
 /* Actions Section */
@@ -219,16 +228,15 @@ button {
 /* Betting Controls */
 .betting-controls {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    margin-top: 20px;
+    align-items: center; /* Vertically align items */
+    gap: 10px; /* Add space between elements */
+    justify-content: center; /* Center the entire group */
 }
 
     .betting-controls label {
         font-size: 1rem;
         font-weight: bold;
-        margin-bottom: 5px;
+        margin: 0;
     }
 
     .betting-controls input {
@@ -236,10 +244,29 @@ button {
         font-size: 1rem;
         border: 1px solid #ccc;
         border-radius: 5px;
-        width: 80px;
+        width: 100px; /* Adjust width as needed */
         text-align: center;
     }
 
     .betting-controls button {
-        width: 120px;
+        padding: 10px 15px;
+        font-size: 1rem;
+        border-radius: 5px;
     }
+.card-count-toggle {
+    position: absolute;
+    top: 70px; /* Adjust to move it further down */
+    left: 250px; /* Adjust to move it further away from the sidebar */
+    z-index: 1000; /* Ensure it overlays other elements */
+}
+
+.card-count-display {
+    background-color: #34495e;
+    color: white;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-top: 5px;
+    width: max-content;
+}
+
