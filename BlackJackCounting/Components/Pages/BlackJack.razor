@@ -1,0 +1,155 @@
+﻿@page "/blackjack"
+@inject GameService GameService
+@rendermode InteractiveServer
+
+
+<h1 class="game-title">Blackjack</h1>
+
+<div class="game-info-container">
+    <h2 class="player-cash">Player Cash: $@($"{GameService.PlayerCash:F2}")</h2>
+    <p class="cards-remaining">Cards Remaining: <strong>@GameService.Deck.CardsRemaining</strong></p>
+</div>
+
+<div class="game-container">
+    <!-- Dealer Section -->
+    <section class="dealer-section">
+        <h2>Dealer's Hand</h2>
+        <div class="cards">
+            @for (int i = 0; i < GameService.DealerHand.Cards.Count; i++)
+            {
+                @if (i == 0 || GameService.IsGameOver)
+                {
+                    <div class="card">@GameService.DealerHand.Cards[i].ToString()</div>
+                }
+                else
+                {
+                    <div class="card face-down">[Hidden Card]</div>
+                }
+            }
+        </div>
+        <p class="hand-total">
+            Total: @(
+            GameService.DealerHand.Cards.Count > 0
+            ? (GameService.IsGameOver
+            ? GameService.DealerHand.CalculateValue()
+            : GameService.DealerHand.Cards[0].PrimaryValue)
+            : "N/A")
+        </p>
+    </section>
+
+    <!-- Player Hands Section -->
+    <section class="player-section">
+        <h2>Player's Hands</h2>
+        <div class="hands-container">
+            @for (int i = 0; i < GameService.PlayerHands.Count; i++)
+            {
+                <div class="hand">
+                    <h3>Hand @(i + 1) @(i == GameService.CurrentHandIndex ? "(Current)" : "")</h3>
+                    <p>Bet: <strong>$@($"{GameService.Bets[i]:F2}")</strong></p>
+                    <div class="cards">
+                        @foreach (var card in GameService.PlayerHands[i].Cards)
+                        {
+                            <div class="card">@card.ToString()</div>
+                        }
+                    </div>
+                    <p class="hand-total">Total: @GameService.PlayerHands[i].CalculateValue()</p>
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- Game Actions Section -->
+    <section class="actions-section">
+        @if (GameService.IsGameOver)
+        {
+            <h3>@GameService.GameResult</h3>
+            <p>Your current cash: <strong>$@($"{GameService.PlayerCash:F2}")</strong></p>
+        }
+        else
+        {
+            <div class="actions">
+                <button class="btn btn-primary" @onclick="Hit">Hit</button>
+                <button class="btn btn-secondary" @onclick="Stand">Stand</button>
+                @if (GameService.PlayerHands[GameService.CurrentHandIndex].Cards.Count == 2)
+                {
+                    <button class="btn btn-warning" @onclick="DoubleDown">Double Down</button>
+                }
+                @if (GameService.CanSplit())
+                {
+                    <button class="btn btn-success" @onclick="Split">Split</button>
+                }
+            </div>
+        }
+
+        @if (GameService.CurrentBet == 0)
+        {
+            <div class="betting-controls">
+                <label for="betAmount">Place Your Bet:</label>
+                <input type="number" id="betAmount" @bind="BetAmount" min="1" max="@GameService.PlayerCash" />
+                <button class="btn btn-primary" @onclick="PlaceBetAndStartGame">Place Bet</button>
+            </div>
+        }
+    </section>
+</div>
+
+
+
+@code {
+    private int BetAmount { get; set; } = 0;
+
+
+    protected override void OnInitialized()
+    {
+        GameService.StartNewGame();
+    }
+
+    private void Hit()
+    {
+        GameService.PlayerHits();
+        StateHasChanged();
+    }
+
+    private void Stand()
+    {
+        GameService.PlayerStands();
+        StateHasChanged();
+    }
+
+    private void DoubleDown()
+    {
+        GameService.DoubleDown();
+        StateHasChanged();
+    }
+
+    private void Split()
+    {
+        GameService.Split();
+        StateHasChanged();
+    }
+
+    private void PlaceBetAndStartGame()
+    {
+        ResetForNewRound();
+        try
+        {
+            GameService.PlaceBet(BetAmount);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error placing bet: {ex.Message}");
+        }
+    }
+
+    private void RestartGame()
+    {
+        GameService.StartNewGame();
+        StateHasChanged();
+    }
+
+    private void ResetForNewRound()
+    {
+        GameService.StartNewGame();
+        StateHasChanged();
+    }
+}

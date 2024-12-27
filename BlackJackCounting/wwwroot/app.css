@@ -49,3 +49,197 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+/* General Styling */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #2e3b4e;
+    color: #fff;
+    margin: 0;
+    padding: 0;
+}
+
+.game-title {
+    text-align: center;
+    font-size: 2.5rem;
+    margin: 20px 0;
+    color: #ffc107; /* Gold color for the title */
+}
+
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+}
+
+/* Game Info Section */
+.game-info-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 90%;
+    max-width: 800px;
+    margin: 0 auto 20px;
+    padding: 10px 20px;
+    border-bottom: 1px solid #ccc;
+    background-color: #34495e; /* Slightly darker background */
+}
+
+.player-cash {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 0;
+    text-align: center;
+    flex: 1;
+}
+
+.cards-remaining {
+    font-size: 1.2rem;
+    font-weight: normal;
+    margin: 0;
+    text-align: right;
+    flex: 0 0 auto;
+}
+
+/* Dealer Section */
+.dealer-section {
+    width: 90%;
+    max-width: 800px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 20px;
+    background-color: #34495e;
+    text-align: center;
+}
+
+.cards {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap; /* Cards wrap if needed */
+}
+
+.card {
+    width: 60px;
+    height: 90px;
+    border: 1px solid #000;
+    border-radius: 5px;
+    text-align: center;
+    line-height: 90px;
+    font-weight: bold;
+    background-color: white;
+    color: black;
+}
+
+    .card.face-down {
+        background-color: gray;
+        color: white;
+    }
+
+.hand-total {
+    font-weight: bold;
+    margin-top: 10px;
+    color: #ffc107; /* Gold color for emphasis */
+}
+
+/* Player Section */
+.player-section {
+    width: 90%;
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.hands-container {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap; /* Ensures responsiveness */
+}
+
+.hand {
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    width: 200px; /* Fixed width for consistent alignment */
+    flex: 0 0 auto; /* Prevent shrinking */
+    text-align: center;
+    color: black; /* Black text for contrast on light background */
+}
+
+/* Actions Section */
+.actions-section {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+    button:hover {
+        background-color: #ffc107; /* Gold hover effect */
+        color: black;
+    }
+
+    button.btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    button.btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    button.btn-warning {
+        background-color: #ffc107;
+        color: black;
+    }
+
+    button.btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+/* Betting Controls */
+.betting-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+    .betting-controls label {
+        font-size: 1rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .betting-controls input {
+        padding: 5px 10px;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        width: 80px;
+        text-align: center;
+    }
+
+    .betting-controls button {
+        width: 120px;
+    }

@@ -1,4 +1,5 @@
 using BlackJackCounting.Components;
+using BlackJackCounting.Services;
 
 namespace BlackJackCounting
 {
@@ -11,6 +12,9 @@ namespace BlackJackCounting
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
+            builder.Services.AddServerSideBlazor();
+
+            builder.Services.AddScoped<GameService>();
 
             var app = builder.Build();
 
